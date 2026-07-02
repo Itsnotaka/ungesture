@@ -1,0 +1,5 @@
+packages:
+  - .
+allowBuilds:
+  '@central-icons-react/round-filled-radius-2-stroke-2': true
+  sharp: true

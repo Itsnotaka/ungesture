@@ -1,26 +1,611 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-wall: #ffffff;
+  --color-wall-ink: #211d16;
+  --color-paper: #f7f1e3;
+  --color-paper-dim: #efe6d2;
+  --color-ink: #211d16;
+  --color-ink-soft: #4c463a;
+  --color-red: #c23b2a;
+  --color-pink: #de5397;
+  --color-mustard: #d9a23b;
+  --color-cobalt: #3467c4;
+  --color-sage: #8d9a72;
+  --color-violet: #7b5ea7;
+  --color-teal: #58a09a;
+
+  --shadow-sheet:
+    0 1px 1px rgb(15 14 12 / 0.06), 0 4px 8px -2px rgb(15 14 12 / 0.08),
+    0 14px 28px -8px rgb(15 14 12 / 0.14), 0 32px 64px -16px rgb(15 14 12 / 0.14);
+  --shadow-card:
+    0 1px 1px rgb(15 14 12 / 0.08), 0 3px 8px -2px rgb(15 14 12 / 0.12),
+    0 10px 20px -6px rgb(15 14 12 / 0.16);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bodoni);
+  --font-body: var(--font-newsreader);
 }
 
+:root {
+  --ground-shadow: rgb(15 14 12 / 0.25);
+}
+
+/* The room flips with the system: white walls by day, black at night.
+   The magazine itself is a physical object and keeps its paper color. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-wall: #0b0a09;
+    --color-wall-ink: #f0ead9;
+    --ground-shadow: rgb(0 0 0 / 0.6);
+    --shadow-sheet:
+      0 0 0 1px rgb(255 255 255 / 0.045), 0 2px 4px rgb(0 0 0 / 0.45),
+      0 14px 28px -8px rgb(0 0 0 / 0.55), 0 32px 64px -16px rgb(0 0 0 / 0.5);
+    --shadow-card:
+      0 0 0 1px rgb(255 255 255 / 0.045), 0 2px 4px rgb(0 0 0 / 0.45),
+      0 10px 20px -6px rgb(0 0 0 / 0.5);
   }
 }
 
+html {
+  scroll-behavior: smooth;
+  color-scheme: light dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+  font-family: var(--font-body), Georgia, serif;
+  /* White room: soft floor vignette + faint grain */
+  background-image:
+    radial-gradient(140% 100% at 50% 100%, rgb(33 29 22 / 0.07), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    /* Black room: a little light from above + white grain */
+    background-image:
+      radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.05), transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+::selection {
+  background: var(--color-red);
+  color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   The magazine
+   use-cover-flip writes --flip on the stage every frame: 0 closed, 1 open.
+   Everything below — rotation, the drift toward center, light, shadows —
+   derives from that one number, so a finger holding the cover mid-turn
+   holds the whole scene still with it. CSS never animates the flip itself.
+   --------------------------------------------------------------------------- */
+
+/* Registered so the hover peel can transition; the flip itself never does */
+@property --peel {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.stage {
+  --flip: 0;
+}
+
+.stage[data-dragging="true"] {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.spread {
+  /* Long-lens depth: a magazine on a table, not a fisheye demo */
+  perspective: 2600px;
+  width: min(960px, 92vw, calc(76svh * 1.5));
+  aspect-ratio: 155 / 100;
+  position: relative;
+  /* Closed, the book centers on its cover; open, on its spine.
+     The object drifts as its balance shifts. */
+  --shift: calc(var(--flip) * 25% - 25%);
+  transform: translateX(var(--shift));
+}
+
+/* Contact shadow on the floor; it spreads under the cover as the book opens */
+.spread::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: calc(4% + (1 - var(--flip)) * 48%);
+  right: calc(var(--flip) * 4%);
+  bottom: -6%;
+  height: 10%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--ground-shadow), transparent);
+  filter: blur(10px);
+}
+
+.page-recto {
+  position: absolute;
+  inset: 0 0 0 50%;
+  container-type: inline-size;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  /* Stacked page edges peek out on the right, under the soft sheet shadow */
+  box-shadow:
+    1.5px 1px 0 -0.5px var(--color-paper),
+    2.5px 2px 1px -0.5px rgb(15 14 12 / 0.16),
+    4px 3px 0 -1px var(--color-paper-dim),
+    5.5px 4px 2px -1px rgb(15 14 12 / 0.16),
+    var(--shadow-sheet);
+}
+
+/* Spine shading where the two pages meet */
+.page-recto::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 7%;
+  background: linear-gradient(to right, rgb(33 29 22 / 0.14), transparent);
+  pointer-events: none;
+}
+
+/* The lifting cover casts a shadow across the page; it thins as it rises */
+.page-recto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    rgb(15 14 12 / 0.22),
+    rgb(15 14 12 / 0.07) 28%,
+    transparent 55%
+  );
+  opacity: calc((1 - var(--flip)) * (1 - var(--flip)));
+}
+
+.cover {
+  position: absolute;
+  inset: 0 0 0 50%;
+  transform-style: preserve-3d;
+  transform-origin: left center;
+  /* The spring in use-cover-flip owns rotation; only the peel transitions */
+  transform: rotateY(calc(var(--flip) * -180deg - var(--peel)));
+  transition: --peel 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+  z-index: 10;
+  cursor: grab;
+}
+
+.stage[data-dragging="true"] .cover {
+  cursor: grabbing;
+  will-change: transform;
+}
+
+/* The Lean: a resting cover lifts its free edge a breath under the cursor */
+@media (hover: hover) {
+  .stage[data-open="false"][data-dragging="false"] .cover:hover {
+    --peel: 6deg;
+  }
+}
+
+.cover-face {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+  backface-visibility: hidden;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  overflow: hidden;
+}
+
+/* Room light: a face falls into shade as it turns edge-on */
+.cover-face::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: linear-gradient(105deg, rgb(15 14 12 / 0.35), rgb(15 14 12 / 0.7));
+}
+
+.cover-front::before {
+  opacity: calc(var(--flip) * 1.1);
+}
+
+.cover-back::before {
+  opacity: calc((1 - var(--flip)) * 1.1);
+}
+
+.cover-front {
+  box-shadow: var(--shadow-sheet);
+}
+
+/* Paper sheen and hinge crease on the front cover */
+.cover-front::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgb(15 14 12 / 0.1), transparent 7%),
+    linear-gradient(105deg, rgb(255 255 255 / 0.1), transparent 40%, rgb(15 14 12 / 0.05) 92%);
+}
+
+.cover-back {
+  transform: rotateY(180deg);
+  box-shadow: var(--shadow-sheet);
+}
+
+.cover-back::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 7%;
+  background: linear-gradient(to left, rgb(33 29 22 / 0.14), transparent);
+  pointer-events: none;
+}
+
+/* Single-page layout on small screens: the cover swings past vertical and
+   lifts away, since there is no left page for it to land on */
+@media (max-width: 64rem) {
+  .spread {
+    width: min(30rem, 92vw, calc(74svh / 1.35));
+    aspect-ratio: 100 / 135;
+    --shift: 0%;
+  }
+
+  .spread::after {
+    left: 4%;
+    right: 4%;
+  }
+
+  .page-recto {
+    inset: 0;
+  }
+
+  .cover {
+    inset: 0;
+    transform: rotateY(calc(var(--flip) * -150deg - var(--peel)));
+    opacity: clamp(0, 2.6 - var(--flip) * 2.8, 1);
+  }
+
+  .stage[data-open="true"] .cover {
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .spread,
+  .spread::after {
+    animation: none;
+  }
+
+  .cover {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Art controls: a dark instrument bar under the magazine.
+   The buttons are made of the same stuff as the cover art — grain. Depth is
+   layered on the element itself: gradient body, noise, inset bevel, and a
+   blurred sheen overhanging the top edge. Raised means press; recessed
+   means drag.
+   --------------------------------------------------------------------------- */
+
+.control-bar {
+  background: linear-gradient(180deg, #2b251c, #17130e);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 -1px 0 rgb(0 0 0 / 0.5),
+    var(--shadow-card);
+}
+
+.grain-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.1 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(130% 100% at 50% 0%, rgb(255 255 255 / 0.14), transparent 55%),
+    linear-gradient(180deg, #453c2d, #221d15);
+  box-shadow:
+    inset 0 1px 1px rgb(255 255 255 / 0.14),
+    inset 0 0 0 1px rgb(255 255 255 / 0.04),
+    inset 0 -9px 10px -8px rgb(0 0 0 / 0.6),
+    0 1px 2px rgb(0 0 0 / 0.5),
+    0 4px 10px -2px rgb(0 0 0 / 0.35);
+  transition: filter 0.2s ease;
+}
+
+/* Studio light on the grain: a blurred bar overhanging the top edge */
+.grain-btn::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: -4px;
+  right: 7px;
+  left: 7px;
+  height: 12px;
+  border-radius: 9999px;
+  background: linear-gradient(to top, rgb(255 255 255 / 0), rgb(255 255 255 / 0.9));
+  filter: blur(2px);
+  opacity: 0.28;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.grain-btn > svg {
+  position: relative;
+  z-index: 2;
+}
+
+.grain-btn:hover {
+  filter: brightness(1.12);
+}
+
+.grain-btn:hover::after {
+  opacity: 0.45;
+}
+
+/* Press: the button sinks into the bar; the light goes off it */
+.grain-btn:active {
+  filter: brightness(0.92);
+  box-shadow:
+    inset 0 2px 4px rgb(0 0 0 / 0.55),
+    inset 0 0 0 1px rgb(0 0 0 / 0.3),
+    0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+.grain-btn:active::after {
+  opacity: 0.12;
+}
+
+.hue-range {
+  appearance: none;
+  width: 8.5rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  /* Room palette laid out in hue-rotate order */
+  background: linear-gradient(
+    to right,
+    #c23b2a,
+    #d9a23b,
+    #8d9a72,
+    #58a09a,
+    #3467c4,
+    #7b5ea7,
+    #de5397,
+    #c23b2a
+  );
+  /* Carved into the bar, opposite the raised buttons */
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.55),
+    0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+.hue-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 9999px;
+  /* A paper knob: top light and bottom shade baked in, so it reads round */
+  background:
+    radial-gradient(120% 120% at 50% 22%, rgb(255 255 255 / 0.8), transparent 55%),
+    radial-gradient(120% 120% at 50% 100%, rgb(33 29 22 / 0.25), transparent 55%),
+    var(--color-paper);
+  border: 2px solid var(--color-ink);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+}
+
+.hue-range::-moz-range-thumb {
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 9999px;
+  background:
+    radial-gradient(120% 120% at 50% 22%, rgb(255 255 255 / 0.8), transparent 55%),
+    radial-gradient(120% 120% at 50% 100%, rgb(33 29 22 / 0.25), transparent 55%),
+    var(--color-paper);
+  border: 2px solid var(--color-ink);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+   Lexicon volumes: each cover performs its own gesture
+   --------------------------------------------------------------------------- */
+
+.volume {
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+  will-change: transform;
+}
+
+@media (hover: hover) {
+  /* The Lean: tilt driven by JS custom props, toward the cursor */
+  .volume[data-gesture="lean"]:hover {
+    transform: rotate(calc(var(--lean-x, 0) * 2.5deg))
+      translate(calc(var(--lean-x, 0) * 8px), calc(var(--lean-y, 0) * 6px));
+  }
+
+  .volume:not([data-gesture="lean"]):hover {
+    transform: translateY(-6px) rotate(0deg);
+  }
+}
+
+/* The Handoff: the cover line travels from one edge to the other */
+.handoff-line {
+  transition: transform 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@media (hover: hover) {
+  .volume[data-gesture="handoff"]:hover .handoff-line {
+    transform: translateX(var(--handoff-travel, 40%));
+  }
+}
+
+/* The Pause: a resting cursor blinks; hovering holds the room still */
+.pause-caret {
+  animation: pause-blink 2.4s step-end infinite;
+}
+
+@keyframes pause-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+@media (hover: hover) {
+  .volume[data-gesture="pause"]:hover .pause-caret {
+    animation-play-state: paused;
+  }
+}
+
+/* The Nudge: clears its throat every seven seconds */
+.volume[data-gesture="nudge"] {
+  animation: nudge-wiggle 7s ease-in-out infinite;
+}
+
+@keyframes nudge-wiggle {
+  0%,
+  93%,
+  100% {
+    rotate: 0deg;
+  }
+  95% {
+    rotate: 1.1deg;
+  }
+  97% {
+    rotate: -0.8deg;
+  }
+  99% {
+    rotate: 0.4deg;
+  }
+}
+
+@media (hover: hover) {
+  .volume[data-gesture="nudge"]:hover {
+    animation-play-state: paused;
+  }
+}
+
+/* The Echo: the title answers back */
+.echo-title {
+  position: relative;
+}
+
+.echo-title::after {
+  content: attr(data-echo);
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1);
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .volume[data-gesture="echo"]:hover .echo-title::after {
+    animation: echo-out 1.2s ease-out infinite;
+  }
+}
+
+@keyframes echo-out {
+  0% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.22);
+  }
+}
+
+/* The Breath: inhale, exhale */
+.breath-art {
+  animation: breath 5.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes breath {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .volume,
+  .breath-art {
+    animation: none;
+  }
+
+  .pause-caret {
+    animation: none;
+  }
+
+  .volume .handoff-line,
+  .volume {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Wall ephemera: tape, pins, stamps
+   In the components layer so per-instance utilities can resize them.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  .tape {
+    position: absolute;
+    width: 5.5rem;
+    height: 1.6rem;
+    background: rgb(247 241 227 / 0.55);
+    box-shadow: 0 1px 2px rgb(33 29 22 / 0.12);
+    backdrop-filter: blur(1px);
+  }
+
+  .pin {
+    position: absolute;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    box-shadow:
+      inset -1px -2px 3px rgb(33 29 22 / 0.4),
+      0 2px 3px rgb(33 29 22 / 0.35);
+  }
+
+  .stamp {
+    font-family: var(--font-display), serif;
+    border: 2px solid currentColor;
+    transform: rotate(-6deg);
+    letter-spacing: 0.18em;
+  }
+
+  .dropcap::first-letter {
+    font-family: var(--font-display), serif;
+    float: left;
+    font-size: 3.2em;
+    line-height: 0.82;
+    padding-right: 0.08em;
+    padding-top: 0.04em;
+  }
 }

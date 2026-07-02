@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UnGesture
 
-## Getting Started
+Interface Research Lab — exploring how software can participate in human interaction rather than merely facilitate it.
 
-First, run the development server:
+## Stack
+
+- **Next.js** 16.3.0-preview.5 with Turbopack
+- **React** 19
+- **Tailwind CSS** v4
+- **TypeScript**
+- **pnpm**
+
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm run dev    # Next.js dev server
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Commands
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm run lint      # oxlint
+pnpm run fmt       # oxfmt --write
+pnpm run fmt:check # oxfmt --check
+pnpm run build     # next build (static export)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Design Philosophy
 
-## Learn More
+This site is the interface for a research lab about invisible design. Every interaction should embody the principles it describes:
 
-To learn more about Next.js, take a look at the following resources:
+- **Removal over addition:** Less chrome, more content.
+- **Social competence:** The interface reads the room.
+- **Continuity of context:** Transitions feel like moving through a room.
+- **Generous defaults:** Everything works without configuration.
+- **Recovery, not error:** Graceful degradation everywhere.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `app/` — Pages and components
+- `app/components/` — Reusable gesture demos and UI primitives
+- `app/journal/` — Long-form essays
+- `app/experiments/` — Interactive demonstrations
+- `dist/` — Static export output
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Static export is configured in `next.config.ts`. Deploy the `dist/` directory to any static host.
