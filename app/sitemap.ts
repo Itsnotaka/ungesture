@@ -1,8 +1,6 @@
 import type { MetadataRoute } from "next";
 import { site } from "./content";
 
-export const dynamic = "force-static";
-
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
@@ -10,6 +8,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 1,
+    },
+    {
+      url: `${site.url}/logo`,
+      lastModified: new Date(),
+      changeFrequency: "yearly",
+      priority: 0.6,
     },
   ];
 }

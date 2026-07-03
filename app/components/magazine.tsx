@@ -1,11 +1,12 @@
 "use client";
 
-import { IconPlusMedium } from "@central-icons-react/round-filled-radius-2-stroke-2/IconPlusMedium";
-import { IconX } from "@central-icons-react/round-filled-radius-2-stroke-2/IconX";
+import { IconPlusMedium, IconX } from "@central-icons-react/round-filled-radius-2-stroke-2";
+import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { magazine, site } from "../content";
+import { magazine, mark, site } from "../content";
 import { Cover } from "./cover";
 import { InsidePage } from "./inside-page";
+import { LogoMark } from "./logo-mark";
 import { useCoverFlip } from "./use-cover-flip";
 
 /* The art opens with three bubbles; each press of the control blows another
@@ -58,13 +59,18 @@ export function Magazine() {
         data-open={isOpen}
         {...stageHandlers}
       >
-        <p className="absolute top-6 left-1/2 z-20 -translate-x-1/2 font-display text-xl text-wall-ink">
-          {site.wordmark[0]}
-          <span aria-hidden className="px-[0.14em] text-pink">
-            ·
-          </span>
-          {site.wordmark[1]}
-        </p>
+        <div className="absolute top-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5">
+          <Link aria-label={mark.mastheadLabel} className="block" href="/logo" prefetch>
+            <LogoMark className="size-8" />
+          </Link>
+          <p className="font-display text-xl text-wall-ink">
+            {site.wordmark[0]}
+            <span aria-hidden className="px-[0.14em] text-pink">
+              ·
+            </span>
+            {site.wordmark[1]}
+          </p>
+        </div>
 
         <div className="spread">
           <div className="page-recto">

@@ -69,6 +69,25 @@ export const magazine = {
   },
 } as const;
 
+export const mark = {
+  title: "The Mark",
+  description:
+    "The laboratory's mark: a living cell held in a glass case, grown fresh for every visit. No two are alike.",
+  specimenLabel: "Specimen",
+  caption: "Grown for this visit. Press it and another takes its place.",
+  growLabel: "Grow a new specimen",
+  markAlt: "A living cell drifting inside a wireframe glass case",
+  mastheadLabel: "The mark, up close",
+  backLabel: "Back to the magazine",
+  pauseLabel: "Hold it still",
+  playLabel: "Let it drift",
+  tileLabel: "Preview as an app icon",
+  downloadLabel: "Download this frame as a PNG",
+  poseLabel: "Pose",
+  sizeLabel: "Cell",
+  hueLabel: "Hue",
+} as const;
+
 export const volumeCard = {
   label: "UnGesture",
   volPrefix: "Vol.",

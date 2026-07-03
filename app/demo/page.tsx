@@ -1,6 +1,6 @@
 "use client";
 
-import { IconPlusMedium } from "@central-icons-react/round-filled-radius-2-stroke-2/IconPlusMedium";
+import { IconPlusMedium } from "@central-icons-react/round-filled-radius-2-stroke-2";
 import { useRef, useState } from "react";
 import { CoverArt } from "../components/cover-art";
 import { site } from "../content";

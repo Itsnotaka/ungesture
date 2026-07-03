@@ -13,7 +13,7 @@
 - Use top-level imports. Do not use inline dynamic imports.
 - Prefer existing components over one-off markup.
 - Keep Tailwind utilities on elements. No decorative `*ClassName` buckets.
-- Icons: `@central-icons-react/round-filled-radius-2-stroke-2` via per-icon path imports.
+- Icons: `@central-icons-react/round-filled-radius-2-stroke-2` via named exports.
 
 ## UnGesture Design Philosophy
 

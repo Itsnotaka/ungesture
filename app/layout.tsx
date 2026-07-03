@@ -4,6 +4,9 @@ import { Bodoni_Moda, Newsreader } from "next/font/google";
 import "./globals.css";
 import { site } from "./content";
 
+export const instant = true;
+export const prefetch = "allow-runtime";
+
 const bodoni = Bodoni_Moda({
   subsets: ["latin"],
   variable: "--font-bodoni",

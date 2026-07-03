@@ -3,3 +3,6 @@ packages:
 allowBuilds:
   '@central-icons-react/round-filled-radius-2-stroke-2': true
   sharp: true
+minimumReleaseAgeExclude:
+  - '@paper-design/shaders-react@0.0.77'
+  - '@paper-design/shaders@0.0.77'
